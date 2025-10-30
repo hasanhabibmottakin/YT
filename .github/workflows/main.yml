@@ -26,13 +26,11 @@ jobs:
         env:
           YT_API_URL: ${{ secrets.YT_API_URL }}
         run: |
-          cat > channels_input.json <<EOF
-          [
+          echo '[
             {"id":"TdwhCOFh9OA","Name":"Smoy Tv","logo":"https://s3.aynaott.com/storage/cbadf009eebf7506c7633b3a98a2f042","genre":"News","country":"BD","language":"Bangla"}
-          ]
-          EOF
+          ]' > channels_input.json
 
-          python3 - <<'PYTHON'
+          python3 - <<PYTHON
 import json
 import os
 import requests
@@ -45,28 +43,23 @@ m3u_lines = ["#EXTM3U"]
 
 for ch in channels:
     video_id = ch["id"]
-    # Construct API request
     url = f"{yt_api_url}{video_id}"
 
     try:
         resp = requests.get(url, timeout=15)
         resp.raise_for_status()
         data = resp.json()
-
-        # Expecting HLS URL under "hlsManifestUrl"
         hls_url = data.get("hlsManifestUrl")
         if hls_url:
             m3u_lines.append(f'#EXTINF:-1 tvg-id="{video_id}" tvg-name="{ch["Name"]}" tvg-logo="{ch["logo"]}",{ch["Name"]}')
             m3u_lines.append(hls_url)
 
-            # Append to output JSON
             ch_out = ch.copy()
             ch_out["hlsManifestUrl"] = hls_url
             output_json.append(ch_out)
     except Exception as e:
         print(f"Failed to fetch {video_id}: {e}")
 
-# Write outputs
 with open("yt_api.json", "w") as f:
     json.dump(output_json, f, indent=2)
 
